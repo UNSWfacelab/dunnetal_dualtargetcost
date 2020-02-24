@@ -1,0 +1,103 @@
+---
+title: "Dual Target Cost - Experiment 1"
+author: "James D. Dunn"
+date: "7 November 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(PairedData)
+library(ez)
+library(effsize)
+
+experimentData <- read_csv("Experiment1Data.csv")
+```
+
+```{r dataprep}
+experimentData$Pptno <- factor(experimentData$Pptno)
+experimentData$NoTargets <- factor(experimentData$NoTargets)
+
+# get means for each participant for each condition
+
+
+summaryData <- experimentData %>%
+  group_by(Pptno,TrialType) %>%
+  summarise(mean_Errors = mean(TotalErrors))
+
+conditionMeans <- summaryData %>%
+  group_by(TrialType) %>%
+  summarise(group_Errors = mean(mean_Errors))
+conditionSD <- summaryData %>%
+  group_by(TrialType) %>%
+  summarise(group_ErrorsSD = sd(mean_Errors))
+
+conditionMeans$TrialType <- factor(conditionMeans$TrialType)
+levels(conditionMeans$TrialType) <- c("1IMG","1ID","2ID")
+
+conditionSD$TrialType <- factor(conditionSD$TrialType)
+levels(conditionSD$TrialType) <- c("1IMG","1ID","2ID")
+
+#dataframes for significant interactions
+t1<- summaryData %>%
+  filter(TrialType != "3")
+t2<- summaryData %>%
+  filter(TrialType != "2")
+t3<- summaryData %>%
+  filter(TrialType != "1")
+
+t1$TrialType <- factor(t1$TrialType)
+t2$TrialType <- factor(t2$TrialType)
+t3$TrialType <- factor(t3$TrialType)
+
+levels(t1$TrialType) <- c("1IMG","1ID")
+levels(t2$TrialType) <- c("1IMG","2ID")
+levels(t3$TrialType) <- c("1ID","2ID")
+summaryData$TrialType <- factor(summaryData$TrialType)
+levels(summaryData$TrialType) <- c("1IMG","1ID","2ID")
+```
+
+
+
+```{r Demographics}
+demographics <- experimentData %>%
+  group_by(Pptno) %>%
+  summarise(gender = mean(Gender),age = mean(Age))
+demographics$gender <- factor(demographics$gender)
+levels(demographics$gender) <- c("Female","Male")
+summary(demographics)
+
+ageSummary <- demographics %>%
+  summarise(meanAge = mean(age), stdAge = sd(age))
+
+glimpse(ageSummary)
+```
+
+
+
+```{r Visualise}
+picture <- summaryData%>%
+  ggplot(aes(TrialType,mean_Errors))+geom_boxplot()
+plot(picture)
+
+```
+
+
+```{r Errors analysis}
+summaryData.ez <- ezANOVA(data = summaryData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryData.ez
+
+#T TEST
+#1IMG - 1ID
+t.test(mean_Errors ~ TrialType,data = t1, paired=TRUE)
+cohen.d(mean_Errors ~ TrialType,data = t1, paired=TRUE)
+#1IMG - 2ID
+t.test(mean_Errors ~ TrialType,data = t2, paired=TRUE)
+cohen.d(mean_Errors ~ TrialType,data = t2, paired=TRUE)
+
+#1ID - 2ID
+t.test(mean_Errors ~ TrialType,data = t3, paired=TRUE)
+cohen.d(mean_Errors ~ TrialType,data = t3, paired=TRUE)
+
+```
