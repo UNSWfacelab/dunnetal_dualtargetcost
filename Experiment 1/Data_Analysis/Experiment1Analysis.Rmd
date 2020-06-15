@@ -1,7 +1,7 @@
 ---
 title: "Dual Target Cost - Experiment 1"
 author: "James D. Dunn"
-date: "7 November 2018"
+date: "15 June 2020"
 output: html_document
 ---
 
@@ -11,8 +11,11 @@ library(tidyverse)
 library(PairedData)
 library(ez)
 library(effsize)
+library(knitr)
+library(kableExtra)
 
 experimentData <- read_csv("Experiment1Data.csv")
+windowsFonts(Arial=windowsFont("Arial"))
 ```
 
 ```{r dataprep}
@@ -24,14 +27,15 @@ experimentData$NoTargets <- factor(experimentData$NoTargets)
 
 summaryData <- experimentData %>%
   group_by(Pptno,TrialType) %>%
-  summarise(mean_Errors = mean(TotalErrors))
+  summarise(mean_Errors = mean(TotalErrors),mean_TrialLength = mean(TrialLength))
 
 conditionMeans <- summaryData %>%
   group_by(TrialType) %>%
-  summarise(group_Errors = mean(mean_Errors))
+  summarise(group_Errors = mean(mean_Errors),group_TrialLength = mean(mean_TrialLength))
+
 conditionSD <- summaryData %>%
   group_by(TrialType) %>%
-  summarise(group_ErrorsSD = sd(mean_Errors))
+  summarise(group_ErrorsSD = sd(mean_Errors),sd_TrialLength = sd(mean_TrialLength))
 
 conditionMeans$TrialType <- factor(conditionMeans$TrialType)
 levels(conditionMeans$TrialType) <- c("1IMG","1ID","2ID")
@@ -56,6 +60,9 @@ levels(t2$TrialType) <- c("1IMG","2ID")
 levels(t3$TrialType) <- c("1ID","2ID")
 summaryData$TrialType <- factor(summaryData$TrialType)
 levels(summaryData$TrialType) <- c("1IMG","1ID","2ID")
+
+kable(conditionMeans)
+kable(conditionSD)
 ```
 
 
@@ -77,10 +84,51 @@ glimpse(ageSummary)
 
 
 ```{r Visualise}
-picture <- summaryData%>%
-  ggplot(aes(TrialType,mean_Errors))+geom_boxplot()
-plot(picture)
+ggplot(summaryData, aes(x = TrialType, y = mean_Errors)) +
+  geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.border=element_blank(),
+        axis.line=element_line(),
+        text=element_text(family='Arial'),
+        legend.title=element_blank(),
+        plot.title = element_text(face="bold", size = 30, hjust = 0.5),
+        axis.title = element_text(face="bold", size = 12),
+        axis.text = element_text(colour="black", size = 11),
+        panel.background = element_rect(fill = 'white'),
+        strip.text= element_text(face='bold', size =24),
+        strip.background = element_rect(fill = 'white'),
+        legend.position="bottom") +
+  labs(x="Template",y="Mean trial errors")+
+  ylim(0,15) +
+  geom_boxplot(width=.12,fill=I('black'), notch=T, col='grey40',outlier.fill='black',outlier.colour ='black',outlier.color  ='black',outlier.size = 3) +
+  stat_summary(fun='mean', geom='point', shape=20,size =5, col='white')
 
+ggsave("Figure2.png")
+ggsave("Figure2.tiff",dpi = 300)
+
+ggplot(summaryData, aes(x = TrialType, y = mean_TrialLength)) +
+  geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.border=element_blank(),
+        axis.line=element_line(),
+        text=element_text(family='Arial'),
+        legend.title=element_blank(),
+        plot.title = element_text(face="bold", size = 30, hjust = 0.5),
+        axis.title = element_text(face="bold", size = 12),
+        axis.text = element_text(colour="black", size = 11),
+        panel.background = element_rect(fill = 'white'),
+        strip.text= element_text(face='bold', size =24),
+        strip.background = element_rect(fill = 'white'),
+        legend.position="bottom") +
+  labs(x="Template",y="Mean trial length (s)")+
+  # ylim(0,15) +
+  geom_boxplot(width=.12,fill=I('black'), notch=T, col='grey40',outlier.fill='black',outlier.colour ='black',outlier.color  ='black',outlier.size = 3) +
+  stat_summary(fun='mean', geom='point', shape=20,size =5, col='white')
+
+ggsave("SuppFig1.png")
+ggsave("SuppFig1.tiff",dpi = 300)
 ```
 
 
@@ -100,4 +148,21 @@ cohen.d(mean_Errors ~ TrialType,data = t2, paired=TRUE)
 t.test(mean_Errors ~ TrialType,data = t3, paired=TRUE)
 cohen.d(mean_Errors ~ TrialType,data = t3, paired=TRUE)
 
+```
+
+```{r Trial Length analysis}
+summaryDataRT.ez <- ezANOVA(data = summaryData, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataRT.ez
+
+#T TEST
+#1IMG - 1ID
+t.test(mean_TrialLength ~ TrialType,data = t1, paired=TRUE)
+cohen.d(mean_TrialLength ~ TrialType,data = t1, paired=TRUE)
+#1IMG - 2ID
+t.test(mean_TrialLength ~ TrialType,data = t2, paired=TRUE)
+cohen.d(mean_TrialLength ~ TrialType,data = t2, paired=TRUE)
+
+#1ID - 2ID
+t.test(mean_TrialLength ~ TrialType,data = t3, paired=TRUE)
+cohen.d(mean_TrialLength ~ TrialType,data = t3, paired=TRUE)
 ```
