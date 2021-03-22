@@ -14,41 +14,41 @@ library(effsize)
 library(knitr)
 library(kableExtra)
 
-experimentData <- read_csv("Experiment1Data.csv")
+experiment1Data <- read_csv("Experiment1Data.csv")
 windowsFonts(Arial=windowsFont("Arial"))
 ```
 
 ```{r dataprep}
-experimentData$Pptno <- factor(experimentData$Pptno)
-experimentData$NoTargets <- factor(experimentData$NoTargets)
+experiment1Data$Pptno <- factor(experiment1Data$Pptno)
+experiment1Data$NoTargets <- factor(experiment1Data$NoTargets)
 
 # get means for each participant for each condition
 
 
-summaryData <- experimentData %>%
+summaryDataExp1 <- experiment1Data %>%
   group_by(Pptno,TrialType) %>%
   summarise(mean_Errors = mean(TotalErrors),mean_TrialLength = mean(TrialLength))
 
-conditionMeans <- summaryData %>%
+conditionMeansExp1 <- summaryDataExp1 %>%
   group_by(TrialType) %>%
   summarise(group_Errors = mean(mean_Errors),group_TrialLength = mean(mean_TrialLength))
 
-conditionSD <- summaryData %>%
+conditionSDExp1 <- summaryDataExp1 %>%
   group_by(TrialType) %>%
   summarise(group_ErrorsSD = sd(mean_Errors),sd_TrialLength = sd(mean_TrialLength))
 
-conditionMeans$TrialType <- factor(conditionMeans$TrialType)
-levels(conditionMeans$TrialType) <- c("1IMG","1ID","2ID")
+conditionMeansExp1$TrialType <- factor(conditionMeansExp1$TrialType)
+levels(conditionMeansExp1$TrialType) <- c("1IMG","1ID","2ID")
 
-conditionSD$TrialType <- factor(conditionSD$TrialType)
-levels(conditionSD$TrialType) <- c("1IMG","1ID","2ID")
+conditionSDExp1$TrialType <- factor(conditionSDExp1$TrialType)
+levels(conditionSDExp1$TrialType) <- c("1IMG","1ID","2ID")
 
 #dataframes for significant interactions
-t1<- summaryData %>%
+t1<- summaryDataExp1 %>%
   filter(TrialType != "3")
-t2<- summaryData %>%
+t2<- summaryDataExp1 %>%
   filter(TrialType != "2")
-t3<- summaryData %>%
+t3<- summaryDataExp1 %>%
   filter(TrialType != "1")
 
 t1$TrialType <- factor(t1$TrialType)
@@ -58,17 +58,17 @@ t3$TrialType <- factor(t3$TrialType)
 levels(t1$TrialType) <- c("1IMG","1ID")
 levels(t2$TrialType) <- c("1IMG","2ID")
 levels(t3$TrialType) <- c("1ID","2ID")
-summaryData$TrialType <- factor(summaryData$TrialType)
-levels(summaryData$TrialType) <- c("1IMG","1ID","2ID")
+summaryDataExp1$TrialType <- factor(summaryDataExp1$TrialType)
+levels(summaryDataExp1$TrialType) <- c("1IMG","1ID","2ID")
 
-kable(conditionMeans)
-kable(conditionSD)
+kable(conditionMeansExp1)
+kable(conditionSDExp1)
 ```
 
 
 
 ```{r Demographics}
-demographics <- experimentData %>%
+demographics <- experiment1Data %>%
   group_by(Pptno) %>%
   summarise(gender = mean(Gender),age = mean(Age))
 demographics$gender <- factor(demographics$gender)
@@ -84,7 +84,7 @@ glimpse(ageSummary)
 
 
 ```{r Visualise}
-ggplot(summaryData, aes(x = TrialType, y = mean_Errors)) +
+ggplot(summaryDataExp1, aes(x = TrialType, y = mean_Errors)) +
   geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
   theme(panel.grid.major=element_blank(),
         panel.grid.minor=element_blank(),
@@ -107,7 +107,7 @@ ggplot(summaryData, aes(x = TrialType, y = mean_Errors)) +
 ggsave("Figure2.png")
 ggsave("Figure2.tiff",dpi = 300)
 
-ggplot(summaryData, aes(x = TrialType, y = mean_TrialLength)) +
+ggplot(summaryDataExp1, aes(x = TrialType, y = mean_TrialLength)) +
   geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
   theme(panel.grid.major=element_blank(),
         panel.grid.minor=element_blank(),
@@ -127,14 +127,14 @@ ggplot(summaryData, aes(x = TrialType, y = mean_TrialLength)) +
   geom_boxplot(width=.12,fill=I('black'), notch=T, col='grey40',outlier.fill='black',outlier.colour ='black',outlier.color  ='black',outlier.size = 3) +
   stat_summary(fun='mean', geom='point', shape=20,size =5, col='white')
 
-ggsave("SuppFig1.png")
-ggsave("SuppFig1.tiff",dpi = 300)
+ggsave("SupFig1.png")
+ggsave("SupFig1.tiff",dpi = 300)
 ```
 
 
 ```{r Errors analysis}
-summaryData.ez <- ezANOVA(data = summaryData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
-summaryData.ez
+summaryDataExp1.ez <- ezANOVA(data = summaryDataExp1, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataExp1.ez
 
 #T TEST
 #1IMG - 1ID
@@ -151,8 +151,8 @@ cohen.d(mean_Errors ~ TrialType,data = t3, paired=TRUE)
 ```
 
 ```{r Trial Length analysis}
-summaryDataRT.ez <- ezANOVA(data = summaryData, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
-summaryDataRT.ez
+summaryDataExp1RT.ez <- ezANOVA(data = summaryDataExp1, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataExp1RT.ez
 
 #T TEST
 #1IMG - 1ID

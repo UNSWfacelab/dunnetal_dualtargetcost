@@ -14,62 +14,68 @@ library(PairedData)
 library(knitr)
 library(kableExtra)
 
-experimentData <- read_csv("Experiment2Data.csv")
+experiment2Data <- read_csv("Experiment2Data.csv")
 windowsFonts(Arial=windowsFont("Arial"))
 ```
 
 ```{r dataprep}
-experimentData$Pptno <- factor(experimentData$Pptno)
-experimentData$ExpCond <- factor(experimentData$ExpCond)
-experimentData$ExpCond <- ordered(experimentData$ExpCond,c("Genuine","Deception"))
-experimentData$NoTargets <- factor(experimentData$NoTargets)
-experimentData$TrialType <- factor(experimentData$TrialType)
-levels(experimentData$TrialType) <- c("1IMG","1ID","2ID")
+experiment2Data$Pptno <- factor(experiment2Data$Pptno)
+experiment2Data$ExpCond <- factor(experiment2Data$ExpCond, levels = c("Genuine","Deception"))
+experiment2Data$NoTargets <- factor(experiment2Data$NoTargets)
+experiment2Data$TrialType <- factor(experiment2Data$TrialType)
+levels(experiment2Data$TrialType) <- c("1IMG","1ID","2ID")
 
-
-summaryData <- experimentData %>%
+summaryDataExp2 <- experiment2Data %>%
   group_by(Pptno,ExpCond,TrialType) %>%
   summarise(mean_Errors = mean(TotalErrors))
 
-summaryDataRT <- experimentData %>%
+summaryDataExp2RT <- experiment2Data %>%
   group_by(Pptno,ExpCond,TrialType) %>%
   summarise(mean_TrialLength = mean(TrialLength))
 
-conditionMeanData$TrialType <- factor(conditionMeanData$TrialType)
-levels(conditionMeanData$TrialType) <- c("1IMG","1ID","2ID")
+conditionMeanDataExp2 <- summaryDataExp2 %>%
+  group_by(ExpCond,TrialType) %>%
+  summarise(mean_Errors = mean(mean_Errors))
 
-conditionSDData$TrialType <- factor(conditionSDData$TrialType)
-levels(conditionSDData$TrialType) <- c("1IMG","1ID","2ID")
+conditionSDDataExp2 <- summaryDataExp2 %>%
+  group_by(ExpCond,TrialType) %>%
+  summarise(sd_Errors = sd(mean_Errors))
+
+conditionMeanDataExp2$TrialType <- factor(conditionMeanDataExp2$TrialType)
+levels(conditionMeanDataExp2$TrialType) <- c("1IMG","1ID","2ID")
+
+conditionSDDataExp2$TrialType <- factor(conditionSDDataExp2$TrialType)
+levels(conditionSDDataExp2$TrialType) <- c("1IMG","1ID","2ID")
 
 
 ```
 
 ```{r Demographics}
-demographics <- experimentData %>%
+demographicsExp2 <- experiment2Data %>%
   group_by(Pptno) %>%
   summarise(gender = mean(Gender),age = mean(Age))
-demographics$gender <- factor(demographics$gender)
-levels(demographics$gender) <- c("Female","Male")
-summary(demographics)
+demographicsExp2$gender <- factor(demographicsExp2$gender)
+levels(demographicsExp2$gender) <- c("Female","Male")
+summary(demographicsExp2)
 
-ageSummary <- demographics %>%
+ageSummaryExp2 <- demographicsExp2 %>%
   summarise(meanAge = mean(age), stdAge = sd(age))
 
-glimpse(ageSummary)
+glimpse(ageSummaryExp2)
 ```
 
 ```{r Overall analysis}
-summaryDataErrors.ez <- ezANOVA(data = summaryData, dv = .(mean_Errors), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
-summaryDataErrors.ez
+summaryDataExp2Errors.ez <- ezANOVA(data = summaryDataExp2, dv = .(mean_Errors), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
+summaryDataExp2Errors.ez
 ```
 
 ```{r RT analysis}
-summaryDataRT.ez <- ezANOVA(data = summaryDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
-summaryDataRT.ez
+summaryDataExp2RT.ez <- ezANOVA(data = summaryDataExp2RT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
+summaryDataExp2RT.ez
 ```
 
 ```{r Genuine Block analysis}
-genuineData <- summaryData %>%
+genuineData <- summaryDataExp2 %>%
   filter(ExpCond == "Genuine")
 
 genuineData.ez <- ezANOVA(data = genuineData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
@@ -89,7 +95,7 @@ cohen.d(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
 ```
 
 ```{r Deception Block analysis}
-deceptionData <- summaryData %>%
+deceptionData <- summaryDataExp2 %>%
   filter(ExpCond == "Deception")
 
 deceptionData.ez <- ezANOVA(data = deceptionData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
@@ -113,14 +119,14 @@ cohen.d(genuineDataSpread$`2ID`,deceptionDataSpread$`2ID`, paired=TRUE)
 ```
 
 ```{r Trial Length analysis}
-genuineDataRT <- summaryDataRT %>%
+genuineDataRT <- summaryDataExp2RT %>%
   filter(ExpCond == "Genuine")
 
-deceptionDataRT <- summaryDataRT %>%
+deceptionDataRT <- summaryDataExp2RT %>%
   filter(ExpCond == "Deception")
 
-summaryDataRT.ez <- ezANOVA(data = genuineDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
-summaryDataRT.ez
+summaryDataExp2RT.ez <- ezANOVA(data = genuineDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataExp2RT.ez
 
 genuineDataSpread <- genuineDataRT %>%
   spread(key = TrialType, value = mean_TrialLength)
@@ -134,14 +140,15 @@ cohen.d(genuineDataSpread$`1ID`,genuineDataSpread$`2ID`, paired=TRUE)
 t.test(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
 cohen.d(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
 
-summaryDataRT.ez <- ezANOVA(data = deceptionDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
-summaryDataRT.ez
+summaryDataExp2RT.ez <- ezANOVA(data = deceptionDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataExp2RT.ez
 
 
 ```
 
 ```{r Visualise}
-ggplot(summaryData, aes(x = TrialType, y = mean_Errors)) +
+
+ggplot(summaryDataExp2, aes(x = TrialType, y = mean_Errors)) +
   geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
   facet_grid(cols = vars(ExpCond))+
   theme(panel.grid.major=element_blank(),
@@ -165,7 +172,7 @@ ggplot(summaryData, aes(x = TrialType, y = mean_Errors)) +
 ggsave("Figure4.png")
 ggsave("Figure4.tiff",dpi = 300)
 
-ggplot(summaryDataRT, aes(x = TrialType, y = mean_TrialLength)) +
+ggplot(summaryDataExp2RT, aes(x = TrialType, y = mean_TrialLength)) +
   geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
   facet_grid(cols = vars(ExpCond))+
   theme(panel.grid.major=element_blank(),
