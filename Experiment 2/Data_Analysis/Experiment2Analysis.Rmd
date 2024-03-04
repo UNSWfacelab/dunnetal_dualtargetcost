@@ -1,7 +1,7 @@
 ---
 title: "Dual Target Cost - Experiment 2"
 author: "James D. Dunn"
-date: "7 November 2018"
+date: "15 June 2020"
 output: html_document
 ---
 
@@ -10,81 +10,92 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ez)
 library(effsize)
+library(PairedData)
+library(knitr)
+library(kableExtra)
 
-experimentData <- read_csv("Experiment2Data.csv")
+experiment2Data <- read_csv("Experiment2Data.csv")
+windowsFonts(Arial=windowsFont("Arial"))
 ```
 
 ```{r dataprep}
-experimentData$Pptno <- factor(experimentData$Pptno)
-experimentData$ExpCond <- factor(experimentData$ExpCond)
-experimentData$NoTargets <- factor(experimentData$NoTargets)
-experimentData$TrialType <- factor(experimentData$TrialType)
-levels(experimentData$TrialType) <- c("1IMG","1ID","2ID")
+experiment2Data$Pptno <- factor(experiment2Data$Pptno)
+experiment2Data$ExpCond <- factor(experiment2Data$ExpCond, levels = c("Genuine","Deception"))
+experiment2Data$NoTargets <- factor(experiment2Data$NoTargets)
+experiment2Data$TrialType <- factor(experiment2Data$TrialType)
+levels(experiment2Data$TrialType) <- c("1IMG","1ID","2ID")
 
-
-summaryData <- experimentData %>%
+summaryDataExp2 <- experiment2Data %>%
   group_by(Pptno,ExpCond,TrialType) %>%
-  summarise(mean_Errors = mean(TotalErrors)
-            )
+  summarise(mean_Errors = mean(TotalErrors))
 
-conditionMeanData <- summaryData %>%
+summaryDataExp2RT <- experiment2Data %>%
+  group_by(Pptno,ExpCond,TrialType) %>%
+  summarise(mean_TrialLength = mean(TrialLength))
+
+conditionMeanDataExp2 <- summaryDataExp2 %>%
   group_by(ExpCond,TrialType) %>%
   summarise(mean_Errors = mean(mean_Errors))
 
-conditionSDData <- summaryData %>%
+conditionSDDataExp2 <- summaryDataExp2 %>%
   group_by(ExpCond,TrialType) %>%
   summarise(sd_Errors = sd(mean_Errors))
 
-conditionMeanData$TrialType <- factor(conditionMeanData$TrialType)
-levels(conditionMeanData$TrialType) <- c("1IMG","1ID","2ID")
+conditionMeanDataExp2$TrialType <- factor(conditionMeanDataExp2$TrialType)
+levels(conditionMeanDataExp2$TrialType) <- c("1IMG","1ID","2ID")
 
-conditionSDData$TrialType <- factor(conditionSDData$TrialType)
-levels(conditionSDData$TrialType) <- c("1IMG","1ID","2ID")
+conditionSDDataExp2$TrialType <- factor(conditionSDDataExp2$TrialType)
+levels(conditionSDDataExp2$TrialType) <- c("1IMG","1ID","2ID")
 
 
 ```
 
 ```{r Demographics}
-demographics <- experimentData %>%
+demographicsExp2 <- experiment2Data %>%
   group_by(Pptno) %>%
   summarise(gender = mean(Gender),age = mean(Age))
-demographics$gender <- factor(demographics$gender)
-levels(demographics$gender) <- c("Female","Male")
-summary(demographics)
+demographicsExp2$gender <- factor(demographicsExp2$gender)
+levels(demographicsExp2$gender) <- c("Female","Male")
+summary(demographicsExp2)
 
-ageSummary <- demographics %>%
+ageSummaryExp2 <- demographicsExp2 %>%
   summarise(meanAge = mean(age), stdAge = sd(age))
 
-glimpse(ageSummary)
+glimpse(ageSummaryExp2)
 ```
 
 ```{r Overall analysis}
-summaryData.ez <- ezANOVA(data = summaryData, dv = .(mean_Errors), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
-summaryData.ez
+summaryDataExp2Errors.ez <- ezANOVA(data = summaryDataExp2, dv = .(mean_Errors), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
+summaryDataExp2Errors.ez
 ```
 
-```{r Real Block analysis}
-realData <- summaryData %>%
-  filter(ExpCond == "Real")
+```{r RT analysis}
+summaryDataExp2RT.ez <- ezANOVA(data = summaryDataExp2RT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(ExpCond,TrialType), detailed = TRUE, type = 3)
+summaryDataExp2RT.ez
+```
 
-realData.ez <- ezANOVA(data = realData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
-realData.ez
+```{r Genuine Block analysis}
+genuineData <- summaryDataExp2 %>%
+  filter(ExpCond == "Genuine")
 
-realDataSpread <- realData %>%
+genuineData.ez <- ezANOVA(data = genuineData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+genuineData.ez
+
+genuineDataSpread <- genuineData %>%
   spread(key = TrialType, value = mean_Errors)
 
-t.test(realDataSpread$`1IMG`,realDataSpread$`2ID`, paired=TRUE)
-cohen.d(realDataSpread$`1IMG`,realDataSpread$`2ID`, paired=TRUE)
+t.test(genuineDataSpread$`1IMG`,genuineDataSpread$`2ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`1IMG`,genuineDataSpread$`2ID`, paired=TRUE)
 
-t.test(realDataSpread$`1ID`,realDataSpread$`2ID`, paired=TRUE)
-cohen.d(realDataSpread$`1ID`,realDataSpread$`2ID`, paired=TRUE)
+t.test(genuineDataSpread$`1ID`,genuineDataSpread$`2ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`1ID`,genuineDataSpread$`2ID`, paired=TRUE)
 
-t.test(realDataSpread$`1IMG`,realDataSpread$`1ID`, paired=TRUE)
-cohen.d(realDataSpread$`1IMG`,realDataSpread$`1ID`, paired=TRUE)
+t.test(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
 ```
 
 ```{r Deception Block analysis}
-deceptionData <- summaryData %>%
+deceptionData <- summaryDataExp2 %>%
   filter(ExpCond == "Deception")
 
 deceptionData.ez <- ezANOVA(data = deceptionData, dv = .(mean_Errors), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
@@ -102,7 +113,85 @@ cohen.d(deceptionDataSpread$`1ID`,deceptionDataSpread$`2ID`, paired=TRUE)
 t.test(deceptionDataSpread$`1IMG`,deceptionDataSpread$`1ID`, paired=TRUE)
 cohen.d(deceptionDataSpread$`1IMG`,deceptionDataSpread$`1ID`, paired=TRUE)
 
-t.test(realDataSpread$`2ID`,deceptionDataSpread$`2ID`, paired=TRUE)
-cohen.d(realDataSpread$`2ID`,deceptionDataSpread$`2ID`, paired=TRUE)
+t.test(genuineDataSpread$`2ID`,deceptionDataSpread$`2ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`2ID`,deceptionDataSpread$`2ID`, paired=TRUE)
 
+```
+
+```{r Trial Length analysis}
+genuineDataRT <- summaryDataExp2RT %>%
+  filter(ExpCond == "Genuine")
+
+deceptionDataRT <- summaryDataExp2RT %>%
+  filter(ExpCond == "Deception")
+
+summaryDataExp2RT.ez <- ezANOVA(data = genuineDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataExp2RT.ez
+
+genuineDataSpread <- genuineDataRT %>%
+  spread(key = TrialType, value = mean_TrialLength)
+
+t.test(genuineDataSpread$`1IMG`,genuineDataSpread$`2ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`1IMG`,genuineDataSpread$`2ID`, paired=TRUE)
+
+t.test(genuineDataSpread$`1ID`,genuineDataSpread$`2ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`1ID`,genuineDataSpread$`2ID`, paired=TRUE)
+
+t.test(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
+cohen.d(genuineDataSpread$`1IMG`,genuineDataSpread$`1ID`, paired=TRUE)
+
+summaryDataExp2RT.ez <- ezANOVA(data = deceptionDataRT, dv = .(mean_TrialLength), wid = .(Pptno), within = .(TrialType), detailed = TRUE, type = 3)
+summaryDataExp2RT.ez
+
+
+```
+
+```{r Visualise}
+
+ggplot(summaryDataExp2, aes(x = TrialType, y = mean_Errors)) +
+  geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
+  facet_grid(cols = vars(ExpCond))+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.border=element_blank(),
+        axis.line=element_line(),
+        text=element_text(family='Arial'),
+        legend.title=element_blank(),
+        plot.title = element_text(face="bold", size = 12, hjust = 0.5),
+        axis.title = element_text(face="bold", size = 12),
+        axis.text = element_text(colour="black", size = 11),
+        panel.background = element_rect(fill = 'white'),
+        strip.text= element_text(face='bold', size =12),
+        strip.background = element_rect(fill = 'white'),
+        legend.position="bottom") +
+  labs(x="Template",y="Mean trial errors")+
+  ylim(0,12) +
+  geom_boxplot(width=.12,fill=I('black'), notch=T, col='grey40',outlier.fill='black',outlier.colour ='black',outlier.color  ='black',outlier.size = 3) +
+  stat_summary(fun='mean', geom='point', shape=20,size =5, col='white')
+
+ggsave("Figure4.png")
+ggsave("Figure4.tiff",dpi = 300)
+
+ggplot(summaryDataExp2RT, aes(x = TrialType, y = mean_TrialLength)) +
+  geom_violin(aes(fill=TrialType),scale='count',color = "black", size = 1,show.legend = F) +
+  facet_grid(cols = vars(ExpCond))+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.border=element_blank(),
+        axis.line=element_line(),
+        text=element_text(family='Arial'),
+        legend.title=element_blank(),
+        plot.title = element_text(face="bold", size = 12, hjust = 0.5),
+        axis.title = element_text(face="bold", size = 12),
+        axis.text = element_text(colour="black", size = 11),
+        panel.background = element_rect(fill = 'white'),
+        strip.text= element_text(face='bold', size =12),
+        strip.background = element_rect(fill = 'white'),
+        legend.position="bottom") +
+  labs(x="Template",y="Mean trial length (s)")+
+  geom_boxplot(width=.12,fill=I('black'), notch=T, col='grey40',outlier.fill='black',outlier.colour ='black',outlier.color  ='black',outlier.size = 3) +
+  stat_summary(fun='mean', geom='point', shape=20,size =5, col='white')
+
+ggsave("SupFig2.png")
+ggsave("SupFig2.tiff",dpi = 300)
 ```

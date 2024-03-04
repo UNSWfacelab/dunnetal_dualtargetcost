@@ -1,0 +1,42 @@
+---
+title: "Dual Target Cost - Similarity Analysis"
+author: "James D. Dunn"
+date: "10 November 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(PairedData)
+library(ez)
+library(effsize)
+library(knitr)
+library(kableExtra)
+
+similarityData <- read_csv("similarityAnalysis.csv")
+similarityData$ID <- factor(similarityData$ID)
+similarityData$Image <- factor(similarityData$Image)
+similarityData$TrialType <- factor(similarityData$TrialType,levels=c(0,1),labels=c("Nonmatch","Match"))
+windowsFonts(Arial=windowsFont("Arial"))
+```
+
+```{r dataprep}
+# get means for each participant for each condition
+summarySimilarityData <- similarityData %>%
+  group_by(ID,TrialType) %>%
+  summarise(mean_Rating = mean(Mean))
+
+summarySimilarityDataStats <- summarySimilarityData %>%
+  group_by(TrialType) %>%
+  summarise(meanRating = mean(mean_Rating), sd_Rating = sd(mean_Rating))
+
+kable(summarySimilarityDataStats)
+```
+
+```{r t test analysis}
+#T TEST
+t.test(mean_Rating ~ TrialType,data = summarySimilarityData, paired=FALSE)
+cohen.d(mean_Rating ~ TrialType,data = summarySimilarityData, paired=FALSE)
+
+```
